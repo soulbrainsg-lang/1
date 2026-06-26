@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>중앙연구소 개인안전보호구 재고 불출 시스템</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --s0:#f1f0eb;--s1:#f5f4f0;--s2:#ffffff;
+  --tp:#1a1a18;--ts:#5a5956;--tm:#9a9895;
+  --b:rgba(26,26,24,0.12);--bs:rgba(26,26,24,0.22);
+  --ba:#1a6bc4;--bw:#b06000;--bd:#b91c1c;--bk:#1a7a3c;
+  --ga:#e8f0fb;--gw:#fef3e0;--gd:#fef2f2;--gk:#ecfdf5;
+  --ta:#1a56db;--tw:#854f0b;--td:#b91c1c;--tk:#1a7a3c;
+  --fa:#1a56db;--fk:#1a7a3c;--fw:#d97706;--fd:#dc2626;
+  --r:8px;
+}
+body{font-family:'Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif;background:var(--s0);color:var(--tp);min-height:100vh;padding:1.25rem;}
+.wms{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:1rem;}
+
+/* 헤더 */
+.header{background:var(--s2);border:0.5px solid var(--b);border-radius:14px;padding:1rem 1.25rem;}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.hdr-left{display:flex;align-items:center;gap:12px;flex:1;min-width:0;}
+.hdr-icon{width:46px;height:46px;border-radius:var(--r);background:var(--ga);display:flex;align-items:center;justify-content:center;color:var(--ta);font-size:22px;flex-shrink:0;transition:all .2s;}
+.hdr-icon.admin{background:var(--gw);color:var(--tw);}
+.hdr-title{font-size:16px;font-weight:600;color:var(--tp);line-height:1.4;}
+.hdr-sub{font-size:12px;color:var(--ts);margin-top:2px;}
+.hdr-right{display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+.datetime{font-size:11px;color:var(--tm);text-align:right;line-height:1.7;}
+.admin-badge{display:none;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--tw);background:var(--gw);border:0.5px solid var(--bw);border-radius:20px;padding:4px 11px;}
+.hdr-btn{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:500;padding:7px 12px;border-radius:var(--r);cursor:pointer;border:0.5px solid var(--bs);background:var(--s1);color:var(--ts);transition:all .15s;white-space:nowrap;}
+.hdr-btn:hover{border-color:var(--ba);color:var(--ta);background:var(--ga);}
+.hdr-btn.logout{border-color:var(--bd);color:var(--td);background:var(--gd);}
+.hdr-btn.excel{border-color:var(--bk);color:var(--tk);background:var(--gk);display:none;}
+
+/* 카테고리 */
+.cats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.cat-btn{padding:12px 6px;border:0.5px solid var(--b);background:var(--s2);border-radius:12px;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:5px;transition:all .15s;}
+.cat-btn:hover,.cat-btn.active{border-color:var(--ba);background:var(--ga);}
+.cat-btn .ci{font-size:22px;color:var(--tm);}
+.cat-btn.active .ci{color:var(--ta);}
+.cat-btn .cn{font-size:11px;font-weight:600;color:var(--ts);line-height:1.3;}
+.cat-btn.active .cn{color:var(--ta);}
+.cat-btn .ck{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--s1);color:var(--tm);}
+.cat-btn.active .ck{background:var(--fa);color:white;}
+
+/* 패널 */
+.panel{display:flex;gap:12px;align-items:flex-start;}
+.items-list{flex:1;display:flex;flex-direction:column;gap:8px;min-width:0;}
+.item-card{background:var(--s2);border:0.5px solid var(--b);border-radius:12px;cursor:pointer;transition:border-color .15s;overflow:hidden;}
+.item-card:hover{border-color:var(--bs);}
+.item-card.in-cart{border-color:var(--ba);background:var(--ga);}
+.item-card-inner{display:flex;align-items:center;gap:12px;padding:.9rem 1.1rem;}
+.item-info{flex:1;min-width:0;}
+.item-name{font-size:14px;font-weight:600;color:var(--tp);}
+.stock-row{display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap;}
+.stock-txt{font-size:12px;color:var(--ts);}
+.tag{font-size:10px;color:var(--tm);background:var(--s1);border:0.5px solid var(--b);border-radius:4px;padding:1px 6px;}
+.notice-tag{font-size:10px;color:var(--ta);background:var(--ga);border:0.5px solid var(--ba);border-radius:4px;padding:2px 8px;display:flex;align-items:center;gap:3px;}
+.badge{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600;white-space:nowrap;}
+.ok{background:var(--gk);color:var(--tk);}
+.warn{background:var(--gw);color:var(--tw);}
+.danger{background:var(--gd);color:var(--td);}
+.add-btn{width:30px;height:30px;border-radius:50%;border:0.5px solid var(--ba);background:var(--ga);color:var(--ta);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;}
+.add-btn:hover{background:var(--fa);color:white;border-color:var(--fa);}
+.in-cart .add-btn{background:var(--fa);color:white;border-color:var(--fa);}
+
+/* 사이즈 그리드 */
+.size-area{margin:0 1.1rem .9rem;padding-top:9px;border-top:0.5px solid var(--b);display:flex;flex-direction:column;gap:5px;}
+.size-row{display:flex;gap:5px;}
+.size-cell{flex:1;text-align:center;padding:6px 2px;border-radius:var(--r);background:var(--s1);min-width:0;}
+.size-cell.edit{background:var(--gw);border:0.5px solid var(--bw);}
+.size-lbl{font-size:10px;font-weight:600;color:var(--ts);}
+.size-v{font-size:12px;font-weight:600;color:var(--tp);margin-top:2px;}
+.size-v.low{color:var(--td);}
+.size-v.mid{color:var(--tw);}
+.size-inp{width:100%;border:none;background:transparent;font-size:12px;font-weight:600;color:var(--tp);text-align:center;outline:none;padding:0;margin-top:2px;}
+.sub-area{display:flex;gap:8px;margin:0 1.1rem .9rem;padding-top:9px;border-top:0.5px solid var(--b);}
+.sub-cell{flex:1;text-align:center;padding:9px 4px;border-radius:var(--r);background:var(--s1);}
+.sub-cell.edit{background:var(--gw);border:0.5px solid var(--bw);}
+.sub-name{font-size:11px;font-weight:600;color:var(--ts);}
+.sub-v{font-size:14px;font-weight:600;color:var(--tp);margin-top:3px;}
+.sub-v.low{color:var(--td);}
+.sub-v.mid{color:var(--tw);}
+.sub-inp{width:100%;border:none;background:transparent;font-size:14px;font-weight:600;color:var(--tp);text-align:center;outline:none;padding:0;margin-top:3px;}
+.sub-unit{font-size:10px;color:var(--tm);margin-top:2px;}
+.simple-edit{display:flex;align-items:center;gap:8px;margin:0 1.1rem .9rem;padding:9px 12px;background:var(--gw);border:0.5px solid var(--bw);border-radius:var(--r);}
+.simple-edit label{font-size:12px;color:var(--tw);white-space:nowrap;}
+.simple-edit input{flex:1;padding:5px 8px;border:0.5px solid var(--bw);border-radius:var(--r);background:var(--s2);color:var(--tp);font-size:13px;font-weight:600;max-width:80px;text-align:center;outline:none;}
+.other-notice{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:var(--ga);border:0.5px solid var(--ba);border-radius:var(--r);margin:0 1.1rem .9rem;font-size:12px;color:var(--ta);line-height:1.5;}
+
+/* 불출 패널 */
+.dp{width:290px;background:var(--s2);border:0.5px solid var(--b);border-radius:12px;padding:1.1rem;display:flex;flex-direction:column;gap:12px;flex-shrink:0;}
+.dp-title{font-size:15px;font-weight:600;color:var(--tp);}
+.fl{font-size:12px;color:var(--ts);margin-bottom:4px;}
+.app-inp{width:100%;padding:9px 11px;font-size:14px;border:0.5px solid var(--bs);border-radius:var(--r);background:var(--s1);color:var(--tp);outline:none;}
+.app-inp:focus{border-color:var(--ba);}
+.app-inp::placeholder{color:var(--tm);}
+.app-row{display:flex;gap:8px;}
+.app-row .app-inp{flex:1;}
+.app-required{color:var(--td);margin-left:2px;}
+
+/* 장바구니 */
+.cart-empty{font-size:13px;color:var(--tm);text-align:center;padding:16px 0;font-style:italic;}
+.cart-list{display:flex;flex-direction:column;gap:6px;}
+.cart-item{background:var(--s1);border:0.5px solid var(--b);border-radius:var(--r);padding:8px 10px;display:flex;flex-direction:column;gap:6px;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.cart-item-top{display:flex;align-items:center;gap:6px;}
+.cart-item-name{flex:1;font-size:12px;font-weight:600;color:var(--tp);line-height:1.3;}
+.cart-del{width:22px;height:22px;border-radius:50%;border:0.5px solid var(--bd);background:var(--gd);color:var(--td);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:all .15s;}
+.cart-del:hover{background:var(--fd);color:white;}
+.cart-item-opts{display:flex;gap:6px;align-items:center;}
+.cart-sel{flex:1;padding:5px 7px;font-size:12px;border:0.5px solid var(--bs);border-radius:var(--r);background:var(--s2);color:var(--tp);outline:none;cursor:pointer;}
+.cart-sel:focus{border-color:var(--ba);}
+.cart-sel:disabled{opacity:.4;cursor:not-allowed;}
+.cart-badge{font-size:10px;padding:2px 7px;border-radius:20px;background:var(--ga);color:var(--ta);font-weight:600;white-space:nowrap;}
+.cart-count{font-size:11px;font-weight:600;color:var(--ta);background:var(--ga);border-radius:20px;padding:2px 8px;display:flex;align-items:center;gap:3px;white-space:nowrap;}
+
+.dsel{width:100%;padding:9px 11px;font-size:14px;border:0.5px solid var(--bs);border-radius:var(--r);background:var(--s1);color:var(--tp);cursor:pointer;outline:none;}
+.dsel:focus{border-color:var(--ba);}
+.info-row{display:flex;justify-content:space-between;align-items:center;padding:7px 11px;background:var(--s1);border-radius:var(--r);font-size:12px;}
+.info-lbl{color:var(--ts);}
+.info-val{font-weight:600;color:var(--tp);}
+.conf-btn{width:100%;padding:13px;font-size:15px;font-weight:600;background:var(--fa);color:white;border:none;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .15s,transform .1s;}
+.conf-btn:hover:not(:disabled){opacity:.88;}
+.conf-btn:active:not(:disabled){transform:scale(.98);}
+.conf-btn:disabled{opacity:.38;cursor:not-allowed;}
+.admin-hint{display:flex;align-items:center;gap:6px;padding:8px 11px;background:var(--gw);border:0.5px solid var(--bw);border-radius:var(--r);font-size:11px;color:var(--tw);}
+.excel-panel{background:var(--gk);border:0.5px solid var(--bk);border-radius:var(--r);padding:11px 12px;display:none;flex-direction:column;gap:8px;}
+.ep-title{font-size:12px;font-weight:600;color:var(--tk);display:flex;align-items:center;gap:5px;}
+.excel-dl-btn{width:100%;padding:9px;font-size:13px;font-weight:600;background:var(--fk);color:white;border:none;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.excel-dl-btn:hover{opacity:.88;}
+.ep-note{font-size:11px;color:var(--tk);}
+.cart-divider{height:0.5px;background:var(--b);}
+
+/* 로그 */
+.log-sec{background:var(--s2);border:0.5px solid var(--b);border-radius:12px;padding:1rem 1.1rem;}
+.log-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.log-ttl{font-size:13px;font-weight:600;color:var(--ts);display:flex;align-items:center;gap:6px;}
+.clr-btn{font-size:11px;color:var(--tm);background:none;border:0.5px solid var(--b);border-radius:var(--r);padding:3px 9px;cursor:pointer;}
+.log-list{display:flex;flex-direction:column;gap:6px;}
+.log-item{display:flex;align-items:flex-start;gap:10px;padding:9px 11px;background:var(--s1);border:0.5px solid var(--b);border-radius:var(--r);font-size:12px;}
+.log-dot{width:7px;height:7px;border-radius:50%;background:var(--fk);flex-shrink:0;margin-top:4px;}
+.log-body{flex:1;}
+.log-txt{color:var(--tp);font-weight:600;}
+.log-sub{font-size:11px;color:var(--tm);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap;}
+.log-sub span{background:var(--s0);border-radius:4px;padding:1px 6px;}
+.log-time{color:var(--tm);font-size:11px;white-space:nowrap;}
+.empty-st{text-align:center;padding:1.5rem;color:var(--tm);font-size:13px;}
+
+/* 토스트 */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);color:white;padding:11px 20px;border-radius:var(--r);font-size:13px;font-weight:600;transition:transform .3s ease;z-index:9999;display:flex;align-items:center;gap:8px;pointer-events:none;white-space:nowrap;background:var(--fk);box-shadow:0 4px 12px rgba(0,0,0,.15);}
+.toast.w{background:var(--fw);}
+.toast.e{background:var(--fd);}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* 모달 */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--s2);border:0.5px solid var(--b);border-radius:16px;padding:1.75rem;width:320px;display:flex;flex-direction:column;gap:16px;}
+.modal-title{font-size:17px;font-weight:700;color:var(--tp);display:flex;align-items:center;gap:8px;}
+.modal-desc{font-size:13px;color:var(--ts);line-height:1.6;}
+.pw-wrap{position:relative;}
+.pw-inp{width:100%;padding:12px 44px 12px 13px;font-size:16px;border:0.5px solid var(--bs);border-radius:var(--r);background:var(--s1);color:var(--tp);outline:none;letter-spacing:5px;}
+.pw-inp:focus{border-color:var(--ba);}
+.pw-eye{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--tm);font-size:18px;padding:2px;}
+.pw-err{font-size:12px;color:var(--td);display:none;align-items:center;gap:4px;}
+.modal-btns{display:flex;gap:8px;}
+.m-btn{flex:1;padding:12px;font-size:14px;font-weight:600;border:none;border-radius:var(--r);cursor:pointer;}
+.m-btn.p{background:var(--fa);color:white;}
+.m-btn.s{background:var(--s1);color:var(--ts);border:0.5px solid var(--b);}
+
+/* 항목선택 모달 */
+.item-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:2000;}
+.item-modal-overlay.open{display:flex;}
+.item-modal{background:var(--s2);border:0.5px solid var(--b);border-radius:16px;padding:1.5rem;width:340px;display:flex;flex-direction:column;gap:14px;max-height:90vh;overflow-y:auto;}
+.im-title{font-size:15px;font-weight:600;color:var(--tp);}
+.im-name{font-size:13px;color:var(--ta);font-weight:600;padding:8px 11px;background:var(--ga);border-radius:var(--r);}
+.im-field{display:flex;flex-direction:column;gap:5px;}
+.im-label{font-size:12px;color:var(--ts);}
+.im-sel{width:100%;padding:9px 11px;font-size:14px;border:0.5px solid var(--bs);border-radius:var(--r);background:var(--s1);color:var(--tp);cursor:pointer;outline:none;}
+.im-sel:focus{border-color:var(--ba);}
+.im-info{font-size:12px;color:var(--ts);padding:7px 11px;background:var(--s1);border-radius:var(--r);display:flex;justify-content:space-between;}
+.im-btns{display:flex;gap:8px;}
+.im-btn{flex:1;padding:11px;font-size:14px;font-weight:600;border:none;border-radius:var(--r);cursor:pointer;}
+.im-btn.p{background:var(--fa);color:white;}
+.im-btn.s{background:var(--s1);color:var(--ts);border:0.5px solid var(--b);}
+
+@media(max-width:700px){
+  body{padding:.75rem;}
+  .cats{grid-template-columns:repeat(5,1fr);gap:5px;}
+  .panel{flex-direction:column;}
+  .dp{width:100%;}
+  .cat-btn .cn{font-size:10px;}
+}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <div class="modal-title"><i class="ti ti-shield-lock" style="color:var(--ta)"></i>관리자 인증</div>
+    <div class="modal-desc">비밀번호를 입력하면 재고 수정 및 엑셀 내보내기가 가능한 관리자 모드로 전환됩니다.</div>
+    <div class="pw-wrap">
+      <input class="pw-inp" type="password" id="pw-inp" placeholder="비밀번호 입력" maxlength="30" autocomplete="off">
+      <button class="pw-eye" id="pw-eye" onclick="togglePw()" type="button"><i class="ti ti-eye" id="pw-eye-i"></i></button>
+    </div>
+    <div class="pw-err" id="pw-err"><i class="ti ti-alert-circle"></i>비밀번호가 올바르지 않습니다.</div>
+    <div class="modal-btns">
+      <button class="m-btn s" onclick="closeModal()">취소</button>
+      <button class="m-btn p" onclick="tryLogin()"><i class="ti ti-login" style="margin-right:4px"></i>확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 항목 추가 모달 (사이즈/종류/수량 선택) -->
+<div class="item-modal-overlay" id="item-modal">
+  <div class="item-modal">
+    <div class="im-title"><i class="ti ti-plus" style="margin-right:6px;color:var(--ta)"></i>품목 추가</div>
+    <div class="im-name" id="im-name"></div>
+    <div class="im-field" id="im-sub-field" style="display:none">
+      <div class="im-label">종류 선택</div>
+      <select class="im-sel" id="im-sub-sel" onchange="imUpdate()"><option value="">-- 종류 선택 --</option></select>
+    </div>
+    <div class="im-field" id="im-size-field" style="display:none">
+      <div class="im-label">사이즈 선택</div>
+      <select class="im-sel" id="im-size-sel" onchange="imUpdate()"><option value="">-- 사이즈 선택 --</option></select>
+    </div>
+    <div class="im-field">
+      <div class="im-label">불출 수량</div>
+      <select class="im-sel" id="im-qty-sel"><option value="">-- 수량 선택 --</option></select>
+    </div>
+    <div class="im-info"><span style="color:var(--ts)">현재 재고</span><span id="im-stock" style="font-weight:600">-</span></div>
+    <div class="im-btns">
+      <button class="im-btn s" onclick="closeItemModal()">취소</button>
+      <button class="im-btn p" id="im-add-btn" onclick="confirmAddToCart()"><i class="ti ti-shopping-cart" style="margin-right:4px"></i>장바구니 추가</button>
+    </div>
+  </div>
+</div>
+
+<div class="wms">
+  <header class="header">
+    <div class="hdr-top">
+      <div class="hdr-left">
+        <div class="hdr-icon" id="hdr-icon"><i class="ti ti-building-warehouse"></i></div>
+        <div>
+          <div class="hdr-title">중앙연구소 개인안전보호구 재고 불출 시스템</div>
+          <div class="hdr-sub" id="hdr-sub">보호구 재고 관리 · 불출 처리</div>
+        </div>
+      </div>
+      <div class="hdr-right">
+        <div class="admin-badge" id="admin-badge"><i class="ti ti-shield-lock"></i>관리자 모드</div>
+        <button class="hdr-btn excel" id="excel-hdr-btn" onclick="downloadExcel()"><i class="ti ti-file-spreadsheet"></i>엑셀 저장</button>
+        <div class="datetime" id="datetime"></div>
+        <button class="hdr-btn" id="mode-btn" onclick="handleModeBtn()"><i class="ti ti-lock"></i>관리자</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="cats" id="cats"></div>
+
+  <div class="panel">
+    <div class="items-list" id="items-list"></div>
+    <div class="dp">
+      <div class="dp-title" id="dp-title"><i class="ti ti-shopping-cart" style="margin-right:6px"></i>불출 처리</div>
+
+      <!-- 신청자 -->
+      <div>
+        <div class="fl">신청자 정보<span class="app-required">*</span></div>
+        <div class="app-row">
+          <input class="app-inp" type="text" id="app-name" placeholder="이름" maxlength="20">
+          <input class="app-inp" type="text" id="app-id" placeholder="사번" maxlength="20">
+        </div>
+      </div>
+
+      <!-- 장바구니 -->
+      <div>
+        <div class="fl" style="display:flex;align-items:center;justify-content:space-between">
+          <span>불출 목록 <span id="cart-count-badge" style="display:none" class="cart-count"></span></span>
+        </div>
+        <div id="cart-area">
+          <div class="cart-empty" id="cart-empty-msg">품목을 선택하면 여기에 추가됩니다</div>
+          <div class="cart-list" id="cart-list" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="admin-hint" id="admin-hint" style="display:none"><i class="ti ti-pencil"></i>카드에서 직접 수량을 수정하세요</div>
+      <div class="excel-panel" id="excel-panel">
+        <div class="ep-title"><i class="ti ti-file-spreadsheet"></i>재고 현황 내보내기</div>
+        <button class="excel-dl-btn" onclick="downloadExcel()"><i class="ti ti-download"></i>엑셀 파일 다운로드</button>
+        <div class="ep-note">재고 현황 + 불출 내역 포함</div>
+      </div>
+      <button class="conf-btn" id="conf-btn" disabled><i class="ti ti-check"></i>불출 확인</button>
+    </div>
+  </div>
+
+  <div class="log-sec">
+    <div class="log-hdr">
+      <div class="log-ttl"><i class="ti ti-history"></i>금일 불출 내역</div>
+      <button class="clr-btn" id="clr-btn" onclick="clearLog()"><i class="ti ti-lock" style="font-size:10px;margin-right:3px"></i>초기화</button>
+    </div>
+    <div class="log-list" id="log-list"><div class="empty-st">아직 불출 내역이 없습니다.</div></div>
+  </div>
+</div>
+
+<script>
+const ADMIN_PW='1234';
+const BS=['S','M','L','XL','XXL'];
+const FS=['225','230','235','240','245','250','255','260','265','270','275','280'];
+const CT=['6006','60928','6099'];
+const mk=(ks,n)=>{const o={};ks.forEach(k=>o[k]=n);return o;};
+
+const CATS=[
+  {id:'body',name:'신체보호구',icon:'ti-shield',items:[
+    {id:'b1',name:'내화학앞치마 (긴팔형)',type:'simple',stock:40,unit:'개'},
+    {id:'b2',name:'내화학보호복 (C레벨)',type:'simple',stock:15,unit:'벌'},
+    {id:'b3',name:'클린복',type:'sized',ss:'body',sv:mk(BS,30),unit:'벌'},
+    {id:'b4',name:'실험복 (동복)',type:'sized',ss:'body',sv:mk(BS,25),unit:'벌'},
+    {id:'b5',name:'실험복 (하복)',type:'sized',ss:'body',sv:mk(BS,25),unit:'벌'},
+    {id:'b6',name:'실험복 (신입사원용)',type:'sized',ss:'body',sv:mk(BS,20),unit:'벌'},
+  ]},
+  {id:'eye',name:'눈보호구',icon:'ti-eye',items:[
+    {id:'e1',name:'고글형1',type:'simple',stock:55,unit:'개'},
+    {id:'e2',name:'고글형2',type:'simple',stock:22,unit:'개'},
+    {id:'e3',name:'겸착식1',type:'simple',stock:30,unit:'개'},
+    {id:'e4',name:'겸착식2',type:'simple',stock:18,unit:'개'},
+    {id:'e5',name:'겸착식3',type:'simple',stock:14,unit:'개'},
+  ]},
+  {id:'foot',name:'발보호구',icon:'ti-shoe',items:[
+    {id:'f1',name:'클린화',type:'sized',ss:'foot',sv:mk(FS,20),unit:'켤레'},
+    {id:'f2',name:'내화학 안전화',type:'sized',ss:'foot',sv:mk(FS,15),unit:'켤레'},
+    {id:'f3',name:'정전화',type:'sized',ss:'foot',sv:mk(FS,12),unit:'켤레'},
+  ]},
+  {id:'resp',name:'호흡계보호구',icon:'ti-lungs',items:[
+    {id:'r1',name:'전면방독마스크',type:'simple',stock:25,unit:'개'},
+    {id:'r2',name:'정화통',type:'sub',sk:CT,sv:mk(CT,30),unit:'개'},
+  ]},
+  {id:'etc',name:'기타',icon:'ti-box',items:[
+    {id:'x1',name:'방진명찰',type:'other',unit:'개'},
+  ]},
+];
+
+function saveStock(){
+  const snap={};
+  CATS.forEach(c=>c.items.forEach(it=>{
+    if(it.type==='simple') snap[it.id]=it.stock;
+    else if(it.type==='sized'||it.type==='sub') snap[it.id]=JSON.parse(JSON.stringify(it.sv));
+  }));
+  localStorage.setItem('wms_stock',JSON.stringify(snap));
+}
+function loadStock(){
+  try{
+    const snap=JSON.parse(localStorage.getItem('wms_stock')||'{}');
+    CATS.forEach(c=>c.items.forEach(it=>{
+      if(snap[it.id]===undefined) return;
+      if(it.type==='simple') it.stock=snap[it.id];
+      else if(it.type==='sized'||it.type==='sub') Object.assign(it.sv,snap[it.id]);
+    }));
+  }catch(e){}
+}
+loadStock();
+
+const gSizes=it=>it.ss==='foot'?FS:BS;
+const sCls=n=>n<=3?'danger':n<=10?'warn':'ok';
+const sLbl=n=>n<=3?'부족':n<=10?'주의':'충분';
+const totS=it=>gSizes(it).reduce((a,s)=>a+it.sv[s],0);
+const minS=it=>Math.min(...gSizes(it).map(s=>it.sv[s]));
+const totSb=it=>it.sk.reduce((a,k)=>a+it.sv[k],0);
+const minSb=it=>Math.min(...it.sk.map(k=>it.sv[k]));
+const fi=id=>{for(const c of CATS){const f=c.items.find(i=>i.id===id);if(f)return f;}return null;};
+
+let actCat='body', logs=[], isAdmin=false;
+let cart=[]; // [{cartId, itemId, name, type, sub, size, qty, unit}]
+let cartSeq=0;
+let imItem=null; // 현재 모달에서 선택 중인 item
+
+// ── 관리자 재고 수정 ──
+function szCells(item){
+  const szs=gSizes(item);
+  const mk2=s=>{
+    const v=item.sv[s],vc=v<=3?'low':v<=10?'mid':'';
+    if(isAdmin) return `<div class="size-cell edit"><div class="size-lbl">${s}</div><input class="size-inp" type="number" min="0" value="${v}" data-id="${item.id}" data-k="${s}" onchange="upSz(this)" onclick="event.stopPropagation()"></div>`;
+    return `<div class="size-cell"><div class="size-lbl">${s}</div><div class="size-v ${vc}">${v}</div></div>`;
+  };
+  if(item.ss==='foot') return [szs.slice(0,6),szs.slice(6,12)].map(r=>`<div class="size-row">${r.map(mk2).join('')}</div>`).join('');
+  return `<div class="size-row">${szs.map(mk2).join('')}</div>`;
+}
+function sbCells(item){
+  return item.sk.map(k=>{
+    const v=item.sv[k],vc=v<=3?'low':v<=10?'mid':'';
+    if(isAdmin) return `<div class="sub-cell edit"><div class="sub-name">${k}</div><input class="sub-inp" type="number" min="0" value="${v}" data-id="${item.id}" data-k="${k}" onchange="upSb(this)" onclick="event.stopPropagation()"><div class="sub-unit">${item.unit}</div></div>`;
+    return `<div class="sub-cell"><div class="sub-name">${k}</div><div class="sub-v ${vc}">${v}</div><div class="sub-unit">${item.unit}</div></div>`;
+  }).join('');
+}
+function simEd(item){
+  if(!isAdmin) return '';
+  return `<div class="simple-edit" onclick="event.stopPropagation()"><label><i class="ti ti-pencil" style="font-size:11px;margin-right:2px"></i>재고 수정</label><input type="number" min="0" value="${item.stock}" data-id="${item.id}" onchange="upSim(this)"><span style="font-size:12px;color:var(--tw)">${item.unit}</span></div>`;
+}
+function upSz(el){const v=Math.max(0,parseInt(el.value)||0);el.value=v;fi(el.dataset.id).sv[el.dataset.k]=v;saveStock();toast(`재고 수정 완료`,'w');}
+function upSb(el){const v=Math.max(0,parseInt(el.value)||0);el.value=v;fi(el.dataset.id).sv[el.dataset.k]=v;saveStock();toast(`재고 수정 완료`,'w');}
+function upSim(el){const v=Math.max(0,parseInt(el.value)||0);el.value=v;fi(el.dataset.id).stock=v;saveStock();toast(`재고 수정 완료`,'w');}
+
+// ── 카테고리/품목 렌더링 ──
+function renderCats(){
+  document.getElementById('cats').innerHTML=CATS.map(c=>`
+    <button class="cat-btn${c.id===actCat?' active':''}" onclick="setCat('${c.id}')">
+      <i class="ti ${c.icon} ci"></i><span class="cn">${c.name}</span><span class="ck">${c.items.length}종</span>
+    </button>`).join('');
+}
+
+function isInCart(itemId,sub,size){
+  return cart.some(c=>c.itemId===itemId&&c.sub===sub&&c.size===size);
+}
+
+function renderItems(){
+  const cat=CATS.find(c=>c.id===actCat);
+  document.getElementById('items-list').innerHTML=cat.items.map(it=>{
+    const inC=cart.some(c=>c.itemId===it.id);
+    if(it.type==='sized'){
+      const lbl=it.ss==='foot'?'225~280mm':'S~XXL';
+      return `<div class="item-card${inC?' in-cart':''}" onclick="openItemModal('${it.id}')">
+        <div class="item-card-inner">
+          <div class="item-info"><div class="item-name">${it.name}</div>
+          <div class="stock-row"><span class="stock-txt">총 재고: <strong>${totS(it)}</strong> ${it.unit}</span>
+          <span class="tag"><i class="ti ti-ruler" style="font-size:10px;margin-right:2px"></i>${lbl}</span></div></div>
+          <span class="badge ${sCls(minS(it))}">${sLbl(minS(it))}</span>
+          ${!isAdmin?`<div class="add-btn"><i class="ti ti-plus"></i></div>`:''}
+        </div>
+        <div class="size-area">${szCells(it)}</div></div>`;
+    } else if(it.type==='sub'){
+      return `<div class="item-card${inC?' in-cart':''}" onclick="openItemModal('${it.id}')">
+        <div class="item-card-inner">
+          <div class="item-info"><div class="item-name">${it.name}</div>
+          <div class="stock-row"><span class="stock-txt">총 재고: <strong>${totSb(it)}</strong> ${it.unit}</span>
+          <span class="tag"><i class="ti ti-list" style="font-size:10px;margin-right:2px"></i>3종</span></div></div>
+          <span class="badge ${sCls(minSb(it))}">${sLbl(minSb(it))}</span>
+          ${!isAdmin?`<div class="add-btn"><i class="ti ti-plus"></i></div>`:''}
+        </div>
+        <div class="size-area"><div class="sub-area">${sbCells(it)}</div></div></div>`;
+    } else if(it.type==='other'){
+      return `<div class="item-card">
+        <div class="item-card-inner">
+          <div class="item-info"><div class="item-name">${it.name}</div>
+          <div class="stock-row"><span class="notice-tag"><i class="ti ti-phone" style="font-size:10px"></i>연구기획관리팀 문의</span></div></div>
+          <span class="badge warn">문의</span></div>
+        <div class="other-notice"><i class="ti ti-info-circle" style="flex-shrink:0;margin-top:1px"></i>해당 품목은 연구기획관리팀으로 문의바랍니다.</div></div>`;
+    } else {
+      return `<div class="item-card${inC?' in-cart':''}" onclick="openItemModal('${it.id}')">
+        <div class="item-card-inner">
+          <div class="item-info"><div class="item-name">${it.name}</div>
+          <div class="stock-row"><span class="stock-txt">현재 재고: <strong>${it.stock}</strong> ${it.unit}</span></div></div>
+          <span class="badge ${sCls(it.stock)}">${sLbl(it.stock)}</span>
+          ${!isAdmin?`<div class="add-btn"><i class="ti ti-plus"></i></div>`:''}
+        </div>
+        ${simEd(it)}</div>`;
+    }
+  }).join('');
+}
+
+function setCat(id){actCat=id;renderCats();renderItems();}
+
+// ── 항목 추가 모달 ──
+function openItemModal(itemId){
+  if(isAdmin) return;
+  const it=fi(itemId);
+  if(!it||it.type==='other') return;
+  imItem=it;
+  document.getElementById('im-name').textContent=it.name;
+  const subF=document.getElementById('im-sub-field');
+  const sizeF=document.getElementById('im-size-field');
+  const subSel=document.getElementById('im-sub-sel');
+  const sizeSel=document.getElementById('im-size-sel');
+  const qtySel=document.getElementById('im-qty-sel');
+  const stockEl=document.getElementById('im-stock');
+  subF.style.display='none'; sizeF.style.display='none';
+  subSel.value=''; sizeSel.value=''; qtySel.innerHTML='<option value="">-- 수량 선택 --</option>'; qtySel.disabled=true; stockEl.textContent='-';
+  if(it.type==='sub'){
+    subF.style.display='block';
+    subSel.innerHTML='<option value="">-- 종류 선택 --</option>'+it.sk.map(k=>`<option value="${k}">${k}</option>`).join('');
+  } else if(it.type==='sized'){
+    sizeF.style.display='block';
+    const szs=gSizes(it);
+    sizeSel.innerHTML='<option value="">-- 사이즈 선택 --</option>'+szs.map(s=>`<option value="${s}">${s}${it.ss==='foot'?'mm':''}</option>`).join('');
+  } else {
+    imUpdate();
+  }
+  document.getElementById('item-modal').classList.add('open');
+}
+function imUpdate(){
+  if(!imItem) return;
+  const sub=document.getElementById('im-sub-sel').value||null;
+  const size=document.getElementById('im-size-sel').value||null;
+  const qtySel=document.getElementById('im-qty-sel');
+  const stockEl=document.getElementById('im-stock');
+  let cur=0;
+  if(imItem.type==='sub'){ if(!sub){qtySel.disabled=true;qtySel.innerHTML='<option value="">-- 수량 선택 --</option>';stockEl.textContent='-';return;} cur=imItem.sv[sub]; }
+  else if(imItem.type==='sized'){ if(!size){qtySel.disabled=true;qtySel.innerHTML='<option value="">-- 수량 선택 --</option>';stockEl.textContent='-';return;} cur=imItem.sv[size]; }
+  else{ cur=imItem.stock; }
+  stockEl.textContent=`${cur} ${imItem.unit}`;
+  const max=Math.min(cur,20);
+  if(max===0){qtySel.disabled=true;qtySel.innerHTML='<option value="">재고 없음</option>';}
+  else{qtySel.disabled=false;qtySel.innerHTML='<option value="">-- 수량 선택 --</option>'+Array.from({length:max},(_,i)=>`<option value="${i+1}">${i+1} ${imItem.unit}</option>`).join('');}
+}
+function confirmAddToCart(){
+  if(!imItem) return;
+  const sub=document.getElementById('im-sub-sel').value||null;
+  const size=document.getElementById('im-size-sel').value||null;
+  const qty=parseInt(document.getElementById('im-qty-sel').value);
+  if(imItem.type==='sub'&&!sub){toast('종류를 선택하세요','e');return;}
+  if(imItem.type==='sized'&&!size){toast('사이즈를 선택하세요','e');return;}
+  if(isNaN(qty)){toast('수량을 선택하세요','e');return;}
+  let label=imItem.name;
+  if(sub) label+=` (${sub})`;
+  if(size) label+=` (${size}${imItem.ss==='foot'?'mm':''})`;
+  // 같은 항목+사이즈+종류 중복 체크
+  const dup=cart.find(c=>c.itemId===imItem.id&&c.sub===sub&&c.size===size);
+  if(dup){toast('이미 추가된 항목입니다. 장바구니에서 수량을 수정하세요','e');return;}
+  cart.push({cartId:cartSeq++,itemId:imItem.id,name:imItem.name,type:imItem.type,sub,size,qty,unit:imItem.unit,sizeSet:imItem.ss||null,label});
+  closeItemModal();
+  renderItems();
+  renderCart();
+  toast(`${label} ${qty}${imItem.unit} 추가됨`);
+}
+function closeItemModal(){
+  document.getElementById('item-modal').classList.remove('open');
+  imItem=null;
+}
+document.getElementById('item-modal').addEventListener('click',e=>{if(e.target===document.getElementById('item-modal'))closeItemModal();});
+
+// ── 장바구니 렌더링 ──
+function renderCart(){
+  const emptyEl=document.getElementById('cart-empty-msg');
+  const listEl=document.getElementById('cart-list');
+  const badge=document.getElementById('cart-count-badge');
+  const btn=document.getElementById('conf-btn');
+  if(cart.length===0){
+    emptyEl.style.display='block'; listEl.style.display='none';
+    badge.style.display='none'; btn.disabled=true; return;
+  }
+  emptyEl.style.display='none'; listEl.style.display='flex';
+  badge.style.display='flex'; badge.innerHTML=`<i class="ti ti-shopping-cart" style="font-size:11px"></i>${cart.length}개`;
+  btn.disabled=false;
+  listEl.innerHTML=cart.map(c=>{
+    const it=fi(c.itemId);
+    let maxQty=20;
+    if(it){
+      if(c.type==='sub') maxQty=Math.min(20,it.sv[c.sub]||0);
+      else if(c.type==='sized') maxQty=Math.min(20,it.sv[c.size]||0);
+      else maxQty=Math.min(20,it.stock||0);
+    }
+    const opts=Array.from({length:maxQty},(_,i)=>`<option value="${i+1}"${i+1===c.qty?' selected':''}>${i+1} ${c.unit}</option>`).join('');
+    let sub='';
+    if(c.sub) sub=`<span class="cart-badge">${c.sub}</span>`;
+    if(c.size) sub=`<span class="cart-badge">${c.size}${c.sizeSet==='foot'?'mm':''}</span>`;
+    return `<div class="cart-item" id="ci-${c.cartId}">
+      <div class="cart-item-top">
+        <div class="cart-item-name">${c.name}</div>
+        <button class="cart-del" onclick="removeFromCart(${c.cartId})" title="제거"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="cart-item-opts">
+        ${sub}
+        <select class="cart-sel" onchange="updateCartQty(${c.cartId},this.value)">${opts}</select>
+      </div>
+    </div>`;
+  }).join('');
+}
+function removeFromCart(cartId){
+  cart=cart.filter(c=>c.cartId!==cartId);
+  renderItems(); renderCart();
+}
+function updateCartQty(cartId,val){
+  const c=cart.find(x=>x.cartId===cartId);
+  if(c) c.qty=parseInt(val);
+}
+
+// ── 불출 확인 ──
+document.getElementById('conf-btn').addEventListener('click',function(){
+  if(cart.length===0) return;
+  const appName=document.getElementById('app-name').value.trim();
+  const appId=document.getElementById('app-id').value.trim();
+  if(!appName){toast('신청자 이름을 입력하세요','e');document.getElementById('app-name').focus();return;}
+  if(!appId){toast('사번을 입력하세요','e');document.getElementById('app-id').focus();return;}
+  const now=new Date(), ts=now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  const items=[];
+  cart.forEach(c=>{
+    const it=fi(c.itemId);
+    if(!it) return;
+    if(c.type==='sub') it.sv[c.sub]-=c.qty;
+    else if(c.type==='sized') it.sv[c.size]-=c.qty;
+    else it.stock-=c.qty;
+    items.push(c.label+' '+c.qty+c.unit);
+  });
+  saveStock();
+  logs.unshift({items,time:ts,name:appName,empId:appId,isAdmin:false});
+  toast(`${cart.length}개 품목 불출 완료`);
+  cart=[];
+  renderItems(); renderCart(); renderLog();
+});
+
+// ── 로그 ──
+function renderLog(){
+  const el=document.getElementById('log-list');
+  const disp=logs.filter(l=>!l.isAdmin);
+  if(!disp.length){el.innerHTML='<div class="empty-st">아직 불출 내역이 없습니다.</div>';return;}
+  el.innerHTML=disp.slice(0,15).map(l=>`
+    <div class="log-item">
+      <div class="log-dot"></div>
+      <div class="log-body">
+        <div class="log-txt">${l.items?l.items.join(' / '):l.txt||''}</div>
+        <div class="log-sub">
+          <span><i class="ti ti-user" style="font-size:10px;margin-right:2px"></i>${l.name||'-'}</span>
+          <span><i class="ti ti-id-badge" style="font-size:10px;margin-right:2px"></i>${l.empId||'-'}</span>
+        </div>
+      </div>
+      <div class="log-time">${l.time}</div>
+    </div>`).join('');
+}
+function clearLog(){if(!isAdmin){toast('관리자 모드에서만 초기화할 수 있습니다','e');return;}logs=[];renderLog();}
+
+// ── 엑셀 ──
+function downloadExcel(){
+  if(!isAdmin){toast('관리자 모드에서만 사용 가능합니다','e');return;}
+  if(typeof XLSX==='undefined'){toast('라이브러리 로딩 중입니다. 잠시 후 다시 시도하세요','e');return;}
+  const wb=XLSX.utils.book_new(),now=new Date(),dl=now.toLocaleDateString('ko-KR');
+  CATS.forEach(cat=>{
+    const rows=[[`[${cat.name}] 재고 현황 — ${dl}`],[]];
+    cat.items.forEach(it=>{
+      if(it.type==='simple'){rows.push(['품목명','재고','단위','상태']);rows.push([it.name,it.stock,it.unit,it.stock<=3?'⚠ 부족':it.stock<=10?'▲ 주의':'● 충분']);}
+      else if(it.type==='sized'){const ks=Object.keys(it.sv);rows.push([it.name,...ks]);rows.push([`재고(${it.unit})`,...ks.map(k=>it.sv[k])]);}
+      else if(it.type==='sub'){rows.push([it.name,...it.sk]);rows.push([`재고(${it.unit})`,...it.sk.map(k=>it.sv[k])]);}
+      else if(it.type==='other'){rows.push(['품목명','비고']);rows.push([it.name,'연구기획관리팀 문의']);}
+      rows.push([]);
+    });
+    const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=Array(14).fill({wch:12});ws['!cols'][0]={wch:24};
+    XLSX.utils.book_append_sheet(wb,ws,cat.name);
+  });
+  const sumRows=[['전체 요약 — '+dl],[],['카테고리','품목','총 재고','단위','상태']];
+  CATS.forEach(cat=>cat.items.forEach(it=>{
+    let tot='-',st='-';
+    if(it.type==='simple'){tot=it.stock;st=it.stock<=3?'⚠ 부족':it.stock<=10?'▲ 주의':'● 충분';}
+    else if(it.type==='sized'){tot=Object.values(it.sv).reduce((a,v)=>a+v,0);const mn=Math.min(...Object.values(it.sv));st=mn<=3?'⚠ 부족':mn<=10?'▲ 주의':'● 충분';}
+    else if(it.type==='sub'){tot=Object.values(it.sv).reduce((a,v)=>a+v,0);const mn=Math.min(...Object.values(it.sv));st=mn<=3?'⚠ 부족':mn<=10?'▲ 주의':'● 충분';}
+    else{st='담당팀 문의';}
+    sumRows.push([cat.name,it.name,tot,it.unit,st]);
+  }));
+  const wsS=XLSX.utils.aoa_to_sheet(sumRows);wsS['!cols']=[{wch:14},{wch:24},{wch:10},{wch:8},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,wsS,'전체요약');
+  const logRows=[['불출 내역 — '+dl],[],['시각','신청자','사번','불출품목']];
+  logs.filter(l=>!l.isAdmin).forEach(l=>logRows.push([l.time,l.name||'-',l.empId||'-',(l.items||[]).join(' / ')]));
+  const wsL=XLSX.utils.aoa_to_sheet(logRows);wsL['!cols']=[{wch:10},{wch:14},{wch:12},{wch:50}];
+  XLSX.utils.book_append_sheet(wb,wsL,'불출내역');
+  const fn=`보호구재고현황_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.xlsx`;
+  XLSX.writeFile(wb,fn);
+  toast(`${fn} 저장 완료`);
+}
+
+// ── 관리자 모드 ──
+function setAdminMode(on){
+  isAdmin=on;
+  const badge=document.getElementById('admin-badge'),btn=document.getElementById('mode-btn');
+  const icon=document.getElementById('hdr-icon'),sub=document.getElementById('hdr-sub');
+  const title=document.getElementById('dp-title'),exBtn=document.getElementById('excel-hdr-btn');
+  const hint=document.getElementById('admin-hint'),ep=document.getElementById('excel-panel');
+  if(on){
+    badge.style.display='flex';exBtn.style.display='flex';
+    btn.innerHTML='<i class="ti ti-logout"></i>나가기';btn.className='hdr-btn logout';
+    icon.className='hdr-icon admin';icon.innerHTML='<i class="ti ti-shield-lock"></i>';
+    sub.textContent='관리자 모드 · 재고 수정 · 엑셀 내보내기 가능';
+    title.innerHTML='<i class="ti ti-pencil" style="margin-right:6px"></i>재고 관리';
+    hint.style.display='flex';ep.style.display='flex';
+    document.getElementById('conf-btn').style.display='none';
+    document.getElementById('app-name').closest('div').style.display='none';
+    document.getElementById('cart-area').style.display='none';
+    document.getElementById('cart-count-badge').style.display='none';
+    const cb=document.getElementById('clr-btn');if(cb){cb.style.color='var(--tw)';cb.style.borderColor='var(--bw)';cb.style.background='var(--gw)';}
+  } else {
+    badge.style.display='none';exBtn.style.display='none';
+    btn.innerHTML='<i class="ti ti-lock"></i>관리자';btn.className='hdr-btn';
+    icon.className='hdr-icon';icon.innerHTML='<i class="ti ti-building-warehouse"></i>';
+    sub.textContent='보호구 재고 관리 · 불출 처리';
+    title.innerHTML='<i class="ti ti-shopping-cart" style="margin-right:6px"></i>불출 처리';
+    hint.style.display='none';ep.style.display='none';
+    document.getElementById('conf-btn').style.display='flex';
+    document.getElementById('app-name').closest('div').style.display='block';
+    document.getElementById('cart-area').style.display='block';
+    const cb2=document.getElementById('clr-btn');if(cb2){cb2.style.color='';cb2.style.borderColor='';cb2.style.background='';}
+  }
+  renderItems();
+}
+function handleModeBtn(){if(isAdmin){setAdminMode(false);toast('관리자 모드 종료','w');}else{openModal();}}
+function openModal(){document.getElementById('modal').classList.add('open');setTimeout(()=>document.getElementById('pw-inp').focus(),80);}
+function closeModal(){document.getElementById('modal').classList.remove('open');document.getElementById('pw-inp').value='';document.getElementById('pw-err').style.display='none';}
+function togglePw(){const i=document.getElementById('pw-inp'),ic=document.getElementById('pw-eye-i');if(i.type==='password'){i.type='text';ic.className='ti ti-eye-off';}else{i.type='password';ic.className='ti ti-eye';}}
+function tryLogin(){
+  if(document.getElementById('pw-inp').value===ADMIN_PW){closeModal();setAdminMode(true);toast('관리자 모드로 접속했습니다','w');}
+  else{document.getElementById('pw-err').style.display='flex';document.getElementById('pw-inp').value='';document.getElementById('pw-inp').focus();setTimeout(()=>{document.getElementById('pw-err').style.display='none';},2200);}
+}
+document.getElementById('pw-inp').addEventListener('keydown',e=>{if(e.key==='Enter')tryLogin();});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal();});
+
+let toastTimer;
+function toast(msg,type=''){
+  const t=document.getElementById('toast');clearTimeout(toastTimer);
+  const ic=type==='w'?'ti-pencil':type==='e'?'ti-alert-circle':msg.includes('저장')||msg.includes('다운')?'ti-file-spreadsheet':msg.includes('불출 완료')?'ti-circle-check':'ti-circle-check';
+  t.className='toast'+(type?' '+type:'');
+  t.innerHTML=`<i class="ti ${ic}"></i>${msg}`;
+  t.classList.add('show');toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+function updateTime(){
+  const n=new Date();
+  document.getElementById('datetime').innerHTML=`${n.toLocaleDateString('ko-KR')}<br>${n.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}`;
+}
+renderCats();renderItems();renderCart();updateTime();setInterval(updateTime,1000);
+</script>
+</body>
+</html>
